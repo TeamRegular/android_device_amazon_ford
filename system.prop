@@ -26,19 +26,6 @@ wifi.tethering.interface=ap0
 
 wifi.direct.interface=p2p0
 
-# Switching Menu of Mass storage and MTP
-ro.sys.usb.storage.type=mtp,mass_storage
-
-# USB BICR function
-ro.sys.usb.bicr=yes
-
-# USB Charge only function
-ro.sys.usb.charging.only=yes
-
-# smartvolume
-ro.smartvolume.config=/system/vendor/smartvolume/ford/
-ro.config.notification_sound=Verso.ogg
-
 ro.sf.hwrotation=270
 
 # maximum backup size for factory reset whitelist in kB
@@ -53,9 +40,9 @@ ro.audio.monitorRotation=true
 # wifi rssi->bar thresholds
 persist.wifi.rssi.thresholds=-92,-77,-68,-63
 
-# no RIL
+# stop ril daemon
 ro.carrier=wifi-only
-ro.radio.noril=yes
+persist.radio.noril=1
 
 # set default USB configuration
 persist.sys.usb.config=mtp

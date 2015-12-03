@@ -1,49 +1,56 @@
 #!/bin/bash
 
-VENDOR=amazon
-DEVICE=ford
+#set -e
+export DEVICE=ford
+export VENDOR=amazon
 
-if [ $# -eq 1 ]; then
-    COPY_FROM=$1
-    test ! -d "$COPY_FROM" && echo error reading dir "$COPY_FROM" && exit 1
+if [ $# -eq 0 ]; then
+  SRC=adb
+else
+  if [ $# -eq 1 ]; then
+    SRC=$1
+  else
+    echo "$0: bad number of arguments"
+    echo ""
+    echo "usage: $0 [PATH_TO_EXPANDED_ROM]"
+    echo ""
+    echo "If PATH_TO_EXPANDED_ROM is not specified, blobs will be extracted from"
+    echo "the device using adb pull."
+    exit 1
+  fi
 fi
 
-test -z "$DEVICE" && echo device not set && exit 2
-test -z "$VENDOR" && echo vendor not set && exit 2
-test -z "$VENDORDEVICEDIR" && VENDORDEVICEDIR=$DEVICE
-export VENDORDEVICEDIR
-
-BASE=../../../vendor/$VENDOR/$VENDORDEVICEDIR/proprietary
+BASE=../../../vendor/$VENDOR/$DEVICE/proprietary
 rm -rf $BASE/*
 
-for FILE in `egrep -v '(^#|^$)' ../$DEVICE/proprietary-files.txt`; do
-    echo "Extracting /system/$FILE ..."
-    OLDIFS=$IFS IFS=":" PARSING_ARRAY=($FILE) IFS=$OLDIFS
-    FILE=`echo ${PARSING_ARRAY[0]} | sed -e "s/^-//g"`
-    DEST=${PARSING_ARRAY[1]}
-    if [ -z $DEST ]
-    then
-        DEST=$FILE
+for FILE in `egrep -v '(^#|^$)' proprietary-files.txt`; do
+  echo "Extracting /system/$FILE ..."
+  OLDIFS=$IFS IFS=":" PARSING_ARRAY=($FILE) IFS=$OLDIFS
+  FILE=`echo ${PARSING_ARRAY[0]} | sed -e "s/^-//g"`
+  DEST=${PARSING_ARRAY[1]}
+  if [ -z $DEST ]
+  then
+    DEST=$FILE
+  fi
+  DIR=`dirname $FILE`
+  if [ ! -d $BASE/$DIR ]; then
+    mkdir -p $BASE/$DIR
+  fi
+  if [ "$SRC" = "adb" ]; then
+    adb pull /system/$FILE $BASE/$DEST
+  # if file dot not exist try destination
+    if [ "$?" != "0" ]
+        then
+        adb pull /system/$DEST $BASE/$DEST
     fi
-    DIR=`dirname $FILE`
-    if [ ! -d $BASE/$DIR ]; then
-        mkdir -p $BASE/$DIR
+  else
+    cp $SRC/system/$FILE $BASE/$DEST
+    # if file dot not exist try destination
+    if [ "$?" != "0" ]
+        then
+        cp $SRC/system/$DEST $BASE/$DEST
     fi
-    if [ "$COPY_FROM" = "" ]; then
-        adb pull /system/$FILE $BASE/$DEST
-        # if file dot not exist try destination
-        if [ "$?" != "0" ]
-          then
-          adb pull /system/$DEST $BASE/$DEST
-        fi
-    else
-        cp $COPY_FROM/$FILE $BASE/$DEST
-        # if file does not exist try destination
-        if [ "$?" != "0" ]
-            then
-            cp $COPY_FROM/$DEST $BASE/$DEST
-        fi
-    fi
+  fi
 done
 
 ./setup-makefiles.sh
